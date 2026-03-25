@@ -6,6 +6,9 @@
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:13px;color:#64748B;">{{ roleLabel }}</span>
         <el-button @click="$router.push('/')">消息列表</el-button>
+        <el-badge :value="pendingCount || undefined" type="warning">
+          <el-button @click="$router.push('/pending')">存疑记录</el-button>
+        </el-badge>
         <el-button @click="$router.push('/audit')">操作日志</el-button>
         <el-button type="success" @click="exportExcel">导出 Excel</el-button>
         <el-button @click="logout">退出</el-button>
@@ -118,10 +121,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { usePendingCount } from '../composables/usePendingCount.js'
 
 const router = useRouter()
 const entries = ref([])
 const loading = ref(false)
+const { pendingCount } = usePendingCount()
 const dateFrom = ref('')
 const dateTo = ref('')
 const activePeriod = ref('this_month')

@@ -8,6 +8,9 @@
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:13px;color:#64748B;">{{ roleLabel }}</span>
         <el-button @click="$router.push('/timesheet')">工时表格</el-button>
+        <el-badge :value="pendingCount || undefined" type="warning">
+          <el-button @click="$router.push('/pending')">存疑记录</el-button>
+        </el-badge>
         <el-button @click="$router.push('/audit')">操作日志</el-button>
         <el-button type="primary" :loading="loading" @click="fetchMessages">刷新</el-button>
         <el-button @click="logout">退出</el-button>
@@ -68,12 +71,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { usePendingCount } from '../composables/usePendingCount.js'
 
 const router = useRouter()
 const messages = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
+const { pendingCount } = usePendingCount()
 const pageSize = 20
 
 const roleLabel = computed(() => {

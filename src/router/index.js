@@ -3,11 +3,13 @@ import LoginView from '../components/LoginView.vue'
 import MessagesView from '../components/MessagesView.vue'
 import TimesheetView from '../components/TimesheetView.vue'
 import AuditView from '../components/AuditView.vue'
+import PendingView from '../components/PendingView.vue'
 
 const routes = [
   { path: '/login', component: LoginView },
   { path: '/', component: MessagesView, meta: { requiresAuth: true } },
   { path: '/timesheet', component: TimesheetView, meta: { requiresAuth: true } },
+  { path: '/pending', component: PendingView, meta: { requiresAuth: true } },
   { path: '/audit', component: AuditView, meta: { requiresAuth: true } },
 ]
 
