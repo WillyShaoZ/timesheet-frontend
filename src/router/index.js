@@ -1,14 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../components/LoginView.vue'
 import MessagesView from '../components/MessagesView.vue'
+import TimesheetView from '../components/TimesheetView.vue'
 
 const routes = [
   { path: '/login', component: LoginView },
-  {
-    path: '/',
-    component: MessagesView,
-    meta: { requiresAuth: true }
-  },
+  { path: '/', component: MessagesView, meta: { requiresAuth: true } },
+  { path: '/timesheet', component: TimesheetView, meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({
