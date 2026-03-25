@@ -106,13 +106,51 @@
           </template>
         </el-table-column>
         <el-table-column prop="notes" label="备注" min-width="120" />
-        <el-table-column label="操作" width="65" align="center">
+        <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
+            <el-button type="primary" size="small" text @click="openEdit(row)">编辑</el-button>
             <el-button type="danger" size="small" text @click="deleteEntry(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
+
+    <!-- 编辑对话框 -->
+    <el-dialog v-model="editVisible" title="编辑工时记录" width="480px" :close-on-click-modal="false">
+      <el-form v-if="editRow" label-width="80px" size="small">
+        <el-form-item label="日期">
+          <el-date-picker v-model="editRow.date" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="地址">
+          <el-input v-model="editRow.address" />
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-input v-model="editRow.name" />
+        </el-form-item>
+        <el-form-item label="人数">
+          <el-input-number v-model="editRow.people_count" :min="1" :controls="false" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="工时(h)">
+          <el-input-number v-model="editRow.hours" :min="0" :step="0.5" :controls="false" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="工时合计">
+          <el-input-number v-model="editRow.total_hours" :min="0" :step="0.5" :controls="false" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="核对工时">
+          <el-input-number v-model="editRow.verified_hours" :min="0" :step="0.5" :controls="false" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="时薪">
+          <el-input-number v-model="editRow.hourly_rate" :min="0" :controls="false" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="editRow.notes" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="saveEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -127,6 +165,9 @@ const router = useRouter()
 const entries = ref([])
 const loading = ref(false)
 const { pendingCount } = usePendingCount()
+const editVisible = ref(false)
+const editRow = ref(null)
+const saving = ref(false)
 const dateFrom = ref('')
 const dateTo = ref('')
 const activePeriod = ref('this_month')
@@ -219,6 +260,27 @@ async function updateField(row, field, val) {
     await axios.patch(`${API_BASE}/timesheet/entries/${row.id}`, { [field]: val }, { headers: getHeaders() })
   } catch (e) {
     ElMessage.error('保存失败')
+  }
+}
+
+function openEdit(row) {
+  editRow.value = { ...row }
+  editVisible.value = true
+}
+
+async function saveEdit() {
+  saving.value = true
+  try {
+    const { id, ...data } = editRow.value
+    await axios.patch(`${API_BASE}/timesheet/entries/${id}`, data, { headers: getHeaders() })
+    const idx = entries.value.findIndex(e => e.id === id)
+    if (idx !== -1) entries.value[idx] = { ...editRow.value }
+    editVisible.value = false
+    ElMessage.success('已保存')
+  } catch (e) {
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
   }
 }
 
