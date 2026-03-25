@@ -11,6 +11,32 @@
       </div>
     </div>
 
+    <!-- 时间段筛选 -->
+    <div class="filter-bar">
+      <span style="font-size:13px;color:#64748B;margin-right:8px;">时间段：</span>
+      <el-button-group>
+        <el-button
+          v-for="p in periods"
+          :key="p.key"
+          :type="activePeriod === p.key ? 'primary' : ''"
+          size="small"
+          @click="selectPeriod(p)"
+        >{{ p.label }}</el-button>
+      </el-button-group>
+      <el-date-picker
+        v-model="customRange"
+        type="daterange"
+        size="small"
+        range-separator="~"
+        start-placeholder="开始"
+        end-placeholder="结束"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        style="margin-left:12px;width:230px"
+        @change="onCustomRange"
+      />
+    </div>
+
     <!-- 统计 -->
     <div class="stats">
       <div class="stat-item">
@@ -95,6 +121,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const router = useRouter()
 const entries = ref([])
 const loading = ref(false)
+const dateFrom = ref('')
+const dateTo = ref('')
+const activePeriod = ref('this_month')
+const customRange = ref(null)
 
 const API_BASE = 'https://timesheet-backend-production-badb.up.railway.app'
 
@@ -106,6 +136,47 @@ const roleLabel = computed(() => {
 function getHeaders() {
   const token = localStorage.getItem('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+// 时间段配置
+function getPeriods() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  const pad = n => String(n).padStart(2, '0')
+  const daysInMonth = new Date(y, m, 0).getDate()
+
+  // 上个月
+  const prevM = m === 1 ? 12 : m - 1
+  const prevY = m === 1 ? y - 1 : y
+  const prevDays = new Date(prevY, prevM, 0).getDate()
+
+  return [
+    { key: 'first_half', label: '上半月', from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-15` },
+    { key: 'second_half', label: '下半月', from: `${y}-${pad(m)}-16`, to: `${y}-${pad(m)}-${daysInMonth}` },
+    { key: 'this_month', label: '本月', from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${daysInMonth}` },
+    { key: 'last_month', label: '上月', from: `${prevY}-${pad(prevM)}-01`, to: `${prevY}-${pad(prevM)}-${prevDays}` },
+    { key: 'all', label: '全部', from: '', to: '' },
+  ]
+}
+
+const periods = computed(() => getPeriods())
+
+function selectPeriod(p) {
+  activePeriod.value = p.key
+  customRange.value = null
+  dateFrom.value = p.from
+  dateTo.value = p.to
+  fetchEntries()
+}
+
+function onCustomRange(val) {
+  if (val) {
+    activePeriod.value = 'custom'
+    dateFrom.value = val[0]
+    dateTo.value = val[1]
+    fetchEntries()
+  }
 }
 
 const totalHours = computed(() =>
@@ -125,10 +196,10 @@ function computeAmount(row) {
 async function fetchEntries() {
   loading.value = true
   try {
-    const { data } = await axios.get(`${API_BASE}/timesheet/entries`, {
-      params: { page: 1, size: 500 },
-      headers: getHeaders()
-    })
+    const params = { page: 1, size: 500 }
+    if (dateFrom.value) params.date_from = dateFrom.value
+    if (dateTo.value) params.date_to = dateTo.value
+    const { data } = await axios.get(`${API_BASE}/timesheet/entries`, { params, headers: getHeaders() })
     entries.value = data.items
   } catch (e) {
     if (e.response?.status === 401) logout()
@@ -158,7 +229,11 @@ async function deleteEntry(id) {
 
 async function exportExcel() {
   try {
+    const params = {}
+    if (dateFrom.value) params.date_from = dateFrom.value
+    if (dateTo.value) params.date_to = dateTo.value
     const resp = await axios.get(`${API_BASE}/timesheet/export`, {
+      params,
       headers: getHeaders(),
       responseType: 'blob'
     })
@@ -179,7 +254,13 @@ function logout() {
   router.push('/login')
 }
 
-onMounted(fetchEntries)
+onMounted(() => {
+  // 默认选本月
+  const p = periods.value.find(x => x.key === 'this_month')
+  dateFrom.value = p.from
+  dateTo.value = p.to
+  fetchEntries()
+})
 </script>
 
 <style scoped>
@@ -199,6 +280,13 @@ onMounted(fetchEntries)
   font-weight: 700;
   color: #1E293B;
   margin: 0;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .stats {
   display: flex;
