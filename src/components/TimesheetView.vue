@@ -6,6 +6,7 @@
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:13px;color:#64748B;">{{ roleLabel }}</span>
         <el-button @click="$router.push('/')">消息列表</el-button>
+        <el-button @click="$router.push('/audit')">操作日志</el-button>
         <el-button type="success" @click="exportExcel">导出 Excel</el-button>
         <el-button @click="logout">退出</el-button>
       </div>
