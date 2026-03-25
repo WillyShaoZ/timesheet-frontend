@@ -26,7 +26,7 @@
         </el-table-column>
         <el-table-column prop="content" label="消息内容" min-width="300">
           <template #default="{ row }">
-            <span style="color: #1E293B;">{{ row.content }}</span>
+            <span style="color: #1E293B;">{{ row.content || row.raw_payload }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="received_at" label="收到时间" width="180">
