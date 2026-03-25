@@ -73,7 +73,7 @@ const pageSize = 20
 async function fetchMessages() {
   loading.value = true
   try {
-    const { data } = await axios.get('http://localhost:8000/webhook/messages', {
+    const { data } = await axios.get('https://timesheet-backend-production-badb.up.railway.app/webhook/messages', {
       params: { page: page.value, size: pageSize }
     })
     messages.value = data.items
