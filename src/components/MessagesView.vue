@@ -5,9 +5,11 @@
         <h1 class="title">工时消息</h1>
         <p class="subtitle">来自企业微信的实时消息记录</p>
       </div>
-      <el-button type="primary" :loading="loading" @click="fetchMessages">
-        刷新
-      </el-button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;color:#64748B;">{{ roleLabel }}</span>
+        <el-button type="primary" :loading="loading" @click="fetchMessages">刷新</el-button>
+        <el-button @click="logout">退出</el-button>
+      </div>
     </div>
 
     <el-card class="table-card" shadow="never">
@@ -61,28 +63,53 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 
+const router = useRouter()
 const messages = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = 20
 
+const roleLabel = computed(() => {
+  const role = localStorage.getItem('role')
+  return role === 'boss' ? '老板' : role === 'accountant' ? '会计' : ''
+})
+
+const API_BASE = 'https://timesheet-backend-production-badb.up.railway.app'
+
+function getHeaders() {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 async function fetchMessages() {
   loading.value = true
   try {
-    const { data } = await axios.get('https://timesheet-backend-production-badb.up.railway.app/webhook/messages', {
-      params: { page: page.value, size: pageSize }
+    const { data } = await axios.get(`${API_BASE}/webhook/messages`, {
+      params: { page: page.value, size: pageSize },
+      headers: getHeaders()
     })
     messages.value = data.items
     total.value = data.total
   } catch (e) {
-    console.error('获取消息失败', e)
+    if (e.response?.status === 401) {
+      logout()
+    } else {
+      console.error('获取消息失败', e)
+    }
   } finally {
     loading.value = false
   }
+}
+
+function logout() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('role')
+  router.push('/login')
 }
 
 function formatTime(iso) {
