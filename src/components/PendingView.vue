@@ -45,6 +45,14 @@
           <el-input-number v-model="entry.people_count" :min="1" :controls="false" size="small" style="width:70px" />
         </div>
         <div class="field">
+          <label>工时合计</label>
+          <el-input-number v-model="entry.total_hours" :min="0" :step="0.5" :controls="false" size="small" style="width:80px" />
+        </div>
+        <div class="field">
+          <label>核对工时</label>
+          <el-input-number v-model="entry.verified_hours" :min="0" :step="0.5" :controls="false" size="small" style="width:80px" />
+        </div>
+        <div class="field">
           <label>备注</label>
           <el-input v-model="entry.notes" placeholder="备注" size="small" style="width:160px" />
         </div>
@@ -86,7 +94,10 @@ async function fetchPending() {
   loading.value = true
   try {
     const { data } = await axios.get(`${API_BASE}/timesheet/pending`, { headers: getHeaders() })
-    entries.value = data.items
+    entries.value = data.items.map(e => ({
+      ...e,
+      verified_hours: e.verified_hours ?? e.total_hours ?? e.hours,
+    }))
   } catch (e) {
     if (e.response?.status === 401) logout()
   } finally {
@@ -101,6 +112,8 @@ async function confirm(entry) {
       address: entry.address,
       date: entry.date,
       hours: entry.hours,
+      total_hours: entry.total_hours,
+      verified_hours: entry.verified_hours,
       people_count: entry.people_count,
       notes: entry.notes,
     }, { headers: getHeaders() })
