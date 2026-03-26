@@ -15,11 +15,14 @@
 
     <el-empty v-if="!loading && entries.length === 0" description="暂无存疑记录，解析运行正常" />
 
-    <div v-for="entry in entries" :key="entry.id" class="card">
-      <!-- AI 存疑原因 -->
-      <div class="ai-note">
-        <el-icon style="color:#F59E0B;margin-right:6px;"><Warning /></el-icon>
-        <span>{{ entry.ai_note }}</span>
+    <div v-for="entry in entries" :key="entry.id" :class="['card', entry.pending_type === 'hours_mismatch' ? 'card-mismatch' : '']">
+      <!-- 提示信息 -->
+      <div :class="['note-bar', entry.pending_type === 'hours_mismatch' ? 'note-bar-red' : 'note-bar-yellow']">
+        <el-icon style="margin-right:6px;"><Warning /></el-icon>
+        <span v-if="entry.pending_type === 'hours_mismatch'">
+          工时差异：工时合计 <strong>{{ entry.total_hours }}</strong>h ≠ 核对工时 <strong>{{ entry.verified_hours }}</strong>h，差 <strong>{{ diffLabel(entry) }}</strong>h，请核实
+        </span>
+        <span v-else>{{ entry.ai_note }}</span>
       </div>
 
       <!-- 可编辑字段 -->
@@ -65,8 +68,14 @@
 
       <!-- 操作按钮 -->
       <div class="actions">
-        <el-button type="success" size="small" @click="confirm(entry)">确认无误，加入工时表</el-button>
-        <el-button type="danger" size="small" plain @click="reject(entry)">驳回（忽略这条）</el-button>
+        <template v-if="entry.pending_type === 'hours_mismatch'">
+          <el-button type="primary" size="small" @click="saveMismatch(entry)">修改后保存</el-button>
+          <span style="font-size:12px;color:#94A3B8;line-height:1.4;">修正工时合计或核对工时后点保存，差异消除后自动从此页移除</span>
+        </template>
+        <template v-else>
+          <el-button type="success" size="small" @click="confirm(entry)">确认无误，加入工时表</el-button>
+          <el-button type="danger" size="small" plain @click="reject(entry)">驳回（忽略这条）</el-button>
+        </template>
       </div>
     </div>
   </div>
@@ -88,6 +97,10 @@ const API_BASE = 'https://timesheet-backend-production-badb.up.railway.app'
 function getHeaders() {
   const token = localStorage.getItem('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function diffLabel(entry) {
+  return Math.abs((entry.verified_hours || 0) - (entry.total_hours || 0)).toFixed(1)
 }
 
 async function fetchPending() {
@@ -117,6 +130,26 @@ async function confirm(entry) {
     ElMessage.success('已确认，已加入工时表')
   } catch (e) {
     ElMessage.error('操作失败')
+  }
+}
+
+async function saveMismatch(entry) {
+  try {
+    await axios.patch(`${API_BASE}/timesheet/entries/${entry.id}`, {
+      total_hours: entry.total_hours,
+      verified_hours: entry.verified_hours,
+      hours: entry.hours,
+      notes: entry.notes,
+    }, { headers: getHeaders() })
+    // 若差异已消除，从列表移除
+    if (Number(entry.total_hours) === Number(entry.verified_hours)) {
+      entries.value = entries.value.filter(e => e.id !== entry.id)
+      ElMessage.success('已保存，差异已消除')
+    } else {
+      ElMessage.success('已保存')
+    }
+  } catch (e) {
+    ElMessage.error('保存失败')
   }
 }
 
@@ -153,16 +186,26 @@ onMounted(fetchPending)
   padding: 16px 20px;
   margin-bottom: 16px;
 }
+.card-mismatch {
+  border-color: #FCA5A5;
+  border-left-color: #EF4444;
+}
 
-.ai-note {
+.note-bar {
   display: flex;
   align-items: flex-start;
-  background: #FFFBEB;
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 14px;
-  color: #92400E;
   margin-bottom: 14px;
+}
+.note-bar-yellow {
+  background: #FFFBEB;
+  color: #92400E;
+}
+.note-bar-red {
+  background: #FEF2F2;
+  color: #991B1B;
 }
 
 .fields {
@@ -192,5 +235,6 @@ onMounted(fetchPending)
 .actions {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 </style>
