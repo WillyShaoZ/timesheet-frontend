@@ -94,10 +94,7 @@ async function fetchPending() {
   loading.value = true
   try {
     const { data } = await axios.get(`${API_BASE}/timesheet/pending`, { headers: getHeaders() })
-    entries.value = data.items.map(e => ({
-      ...e,
-      verified_hours: e.verified_hours ?? e.total_hours ?? e.hours,
-    }))
+    entries.value = data.items
   } catch (e) {
     if (e.response?.status === 401) logout()
   } finally {
@@ -113,7 +110,6 @@ async function confirm(entry) {
       date: entry.date,
       hours: entry.hours,
       total_hours: entry.total_hours,
-      verified_hours: entry.verified_hours,
       people_count: entry.people_count,
       notes: entry.notes,
     }, { headers: getHeaders() })
