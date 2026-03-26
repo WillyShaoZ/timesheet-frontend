@@ -41,6 +41,29 @@
       />
     </div>
 
+    <!-- 搜索筛选 -->
+    <div class="filter-bar" style="margin-top:0;">
+      <el-input
+        v-model="filterName"
+        placeholder="按姓名搜索"
+        clearable
+        size="small"
+        style="width:140px"
+        @input="onFilterChange"
+        @clear="onFilterChange"
+      />
+      <el-input
+        v-model="filterAddress"
+        placeholder="按地址搜索"
+        clearable
+        size="small"
+        style="width:220px"
+        @input="onFilterChange"
+        @clear="onFilterChange"
+      />
+      <el-button size="small" @click="clearFilters" v-if="filterName || filterAddress">清除筛选</el-button>
+    </div>
+
     <!-- 统计 -->
     <div class="stats">
       <div class="stat-item">
@@ -172,6 +195,9 @@ const dateFrom = ref('')
 const dateTo = ref('')
 const activePeriod = ref('this_month')
 const customRange = ref(null)
+const filterName = ref('')
+const filterAddress = ref('')
+let filterTimer = null
 
 const API_BASE = 'https://timesheet-backend-production-badb.up.railway.app'
 
@@ -246,6 +272,8 @@ async function fetchEntries() {
     const params = { page: 1, size: 500 }
     if (dateFrom.value) params.date_from = dateFrom.value
     if (dateTo.value) params.date_to = dateTo.value
+    if (filterName.value) params.name = filterName.value
+    if (filterAddress.value) params.address = filterAddress.value
     const { data } = await axios.get(`${API_BASE}/timesheet/entries`, { params, headers: getHeaders() })
     entries.value = data.items
   } catch (e) {
@@ -300,6 +328,8 @@ async function exportExcel() {
     const params = {}
     if (dateFrom.value) params.date_from = dateFrom.value
     if (dateTo.value) params.date_to = dateTo.value
+    if (filterName.value) params.name = filterName.value
+    if (filterAddress.value) params.address = filterAddress.value
     const resp = await axios.get(`${API_BASE}/timesheet/export`, {
       params,
       headers: getHeaders(),
@@ -314,6 +344,17 @@ async function exportExcel() {
   } catch (e) {
     ElMessage.error('导出失败')
   }
+}
+
+function onFilterChange() {
+  clearTimeout(filterTimer)
+  filterTimer = setTimeout(fetchEntries, 400)
+}
+
+function clearFilters() {
+  filterName.value = ''
+  filterAddress.value = ''
+  fetchEntries()
 }
 
 function logout() {
