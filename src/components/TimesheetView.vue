@@ -90,6 +90,7 @@
         style="width:100%"
         v-loading="loading"
         empty-text="暂无工时记录，运行解析脚本后刷新"
+        :cell-class-name="cellClassName"
       >
         <el-table-column prop="id" label="序号" width="60" align="center" />
         <el-table-column prop="date" label="日期" width="110" align="center" />
@@ -98,7 +99,7 @@
         <el-table-column prop="people_count" label="人数" width="60" align="center" />
         <el-table-column prop="hours" label="工时(h)" width="75" align="center" />
         <el-table-column prop="total_hours" label="工时合计" width="80" align="center" />
-        <el-table-column label="核对工时" width="90" align="center">
+        <el-table-column prop="verified_hours" label="核对工时" width="90" align="center">
           <template #default="{ row }">
             <el-input-number
               v-model="row.verified_hours"
@@ -224,7 +225,15 @@ function getPeriods() {
   const prevY = m === 1 ? y - 1 : y
   const prevDays = new Date(prevY, prevM, 0).getDate()
 
+  // 本周（周一～周日）
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+  const dow = now.getDay() // 0=Sun
+  const diffMon = dow === 0 ? -6 : 1 - dow
+  const monday = new Date(now); monday.setDate(now.getDate() + diffMon)
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
+
   return [
+    { key: 'this_week', label: '本周', from: fmt(monday), to: fmt(sunday) },
     { key: 'first_half', label: '上半月', from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-15` },
     { key: 'second_half', label: '下半月', from: `${y}-${pad(m)}-16`, to: `${y}-${pad(m)}-${daysInMonth}` },
     { key: 'this_month', label: '本月', from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${daysInMonth}` },
@@ -264,6 +273,13 @@ function computeAmount(row) {
   if (row.amount) return row.amount
   if (row.verified_hours && row.hourly_rate) return (row.verified_hours * row.hourly_rate).toFixed(2)
   return ''
+}
+
+function cellClassName({ row, column }) {
+  if (column.property !== 'total_hours' && column.property !== 'verified_hours') return ''
+  if (row.total_hours == null || row.verified_hours == null) return ''
+  if (Number(row.total_hours) === Number(row.verified_hours)) return ''
+  return column.property === 'total_hours' ? 'cell-diff-red' : 'cell-diff-yellow'
 }
 
 async function fetchEntries() {
@@ -425,5 +441,13 @@ onMounted(() => {
   border-radius: 10px;
   border: 1px solid #E2E8F0;
   overflow: hidden;
+}
+:deep(.cell-diff-red) {
+  background-color: #FF4D4F !important;
+  color: #fff !important;
+}
+:deep(.cell-diff-yellow) {
+  background-color: #FFC53D !important;
+  font-weight: 700;
 }
 </style>
