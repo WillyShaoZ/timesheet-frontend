@@ -106,7 +106,7 @@ function diffLabel(entry) {
 async function fetchPending() {
   loading.value = true
   try {
-    const { data } = await axios.get(`${API_BASE}/timesheet/pending`, { headers: { ...getHeaders(), 'Cache-Control': 'no-cache' } })
+    const { data } = await axios.get(`${API_BASE}/timesheet/pending`, { params: { _t: Date.now() }, headers: { ...getHeaders(), 'Cache-Control': 'no-cache' } })
     entries.value = data.items
   } catch (e) {
     if (e.response?.status === 401) logout()

@@ -285,7 +285,7 @@ function cellClassName({ row, column }) {
 async function fetchEntries() {
   loading.value = true
   try {
-    const params = { page: 1, size: 500 }
+    const params = { page: 1, size: 500, _t: Date.now() }
     if (dateFrom.value) params.date_from = dateFrom.value
     if (dateTo.value) params.date_to = dateTo.value
     if (filterName.value) params.name = filterName.value
