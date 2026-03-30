@@ -290,7 +290,7 @@ async function fetchEntries() {
     if (dateTo.value) params.date_to = dateTo.value
     if (filterName.value) params.name = filterName.value
     if (filterAddress.value) params.address = filterAddress.value
-    const { data } = await axios.get(`${API_BASE}/timesheet/entries`, { params, headers: getHeaders() })
+    const { data } = await axios.get(`${API_BASE}/timesheet/entries`, { params, headers: { ...getHeaders(), 'Cache-Control': 'no-cache' } })
     entries.value = data.items
   } catch (e) {
     if (e.response?.status === 401) logout()
