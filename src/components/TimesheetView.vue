@@ -373,7 +373,10 @@ async function exportExcel() {
     const url = URL.createObjectURL(resp.data)
     const a = document.createElement('a')
     a.href = url
-    a.download = `工时记录_${new Date().toISOString().slice(0, 10)}.xlsx`
+    const rangeLabel = dateFrom.value && dateTo.value
+      ? `${dateFrom.value}至${dateTo.value}`
+      : dateFrom.value || dateTo.value || '全部'
+    a.download = `工时记录_${rangeLabel}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
   } catch (e) {
