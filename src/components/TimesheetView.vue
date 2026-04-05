@@ -67,8 +67,8 @@
     <!-- 统计 -->
     <div class="stats">
       <div class="stat-item">
-        <div class="stat-val">{{ entries.length }}</div>
-        <div class="stat-label">总记录</div>
+        <div class="stat-val">{{ total }}</div>
+        <div class="stat-label">筛选记录</div>
       </div>
       <div class="stat-item">
         <div class="stat-val">{{ totalHours }}</div>
@@ -81,12 +81,13 @@
     </div>
 
     <!-- 分页 -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;" v-if="total > pageSize">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;" v-if="total > pageSize">
+      <span style="font-size:13px;color:#64748B;">本页 {{ entries.length }} 条</span>
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next"
+        layout="prev, pager, next"
         @current-change="fetchEntries"
       />
     </div>
