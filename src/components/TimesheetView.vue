@@ -80,6 +80,17 @@
       </div>
     </div>
 
+    <!-- 分页 -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;" v-if="total > pageSize">
+      <el-pagination
+        v-model:current-page="currentPage"
+        :page-size="pageSize"
+        :total="total"
+        layout="total, prev, pager, next"
+        @current-change="fetchEntries"
+      />
+    </div>
+
     <!-- 表格 -->
     <div class="table-wrap">
       <el-table
@@ -198,6 +209,9 @@ const activePeriod = ref('this_month')
 const customRange = ref(null)
 const filterName = ref('')
 const filterAddress = ref('')
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = 200
 let filterTimer = null
 
 const API_BASE = 'https://timesheet-backend-production-badb.up.railway.app'
@@ -225,15 +239,16 @@ function getPeriods() {
   const prevY = m === 1 ? y - 1 : y
   const prevDays = new Date(prevY, prevM, 0).getDate()
 
-  // 本周（周一～周日）
+  // 上周（周一～周日）
   const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
   const dow = now.getDay() // 0=Sun
   const diffMon = dow === 0 ? -6 : 1 - dow
   const monday = new Date(now); monday.setDate(now.getDate() + diffMon)
-  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
+  const lastMonday = new Date(monday); lastMonday.setDate(monday.getDate() - 7)
+  const lastSunday = new Date(lastMonday); lastSunday.setDate(lastMonday.getDate() + 6)
 
   return [
-    { key: 'this_week', label: '本周', from: fmt(monday), to: fmt(sunday) },
+    { key: 'last_week', label: '上周', from: fmt(lastMonday), to: fmt(lastSunday) },
     { key: 'first_half', label: '上半月', from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-15` },
     { key: 'second_half', label: '下半月', from: `${y}-${pad(m)}-16`, to: `${y}-${pad(m)}-${daysInMonth}` },
     { key: 'this_month', label: '本月', from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${daysInMonth}` },
@@ -249,6 +264,7 @@ function selectPeriod(p) {
   customRange.value = null
   dateFrom.value = p.from
   dateTo.value = p.to
+  currentPage.value = 1
   fetchEntries()
 }
 
@@ -257,6 +273,7 @@ function onCustomRange(val) {
     activePeriod.value = 'custom'
     dateFrom.value = val[0]
     dateTo.value = val[1]
+    currentPage.value = 1
     fetchEntries()
   }
 }
@@ -285,13 +302,14 @@ function cellClassName({ row, column }) {
 async function fetchEntries() {
   loading.value = true
   try {
-    const params = { page: 1, size: 500, _t: Date.now() }
+    const params = { page: currentPage.value, size: pageSize, _t: Date.now() }
     if (dateFrom.value) params.date_from = dateFrom.value
     if (dateTo.value) params.date_to = dateTo.value
     if (filterName.value) params.name = filterName.value
     if (filterAddress.value) params.address = filterAddress.value
     const { data } = await axios.get(`${API_BASE}/timesheet/entries`, { params, headers: { ...getHeaders(), 'Cache-Control': 'no-cache' } })
     entries.value = data.items
+    total.value = data.total
   } catch (e) {
     if (e.response?.status === 401) logout()
   } finally {
